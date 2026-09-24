@@ -23,6 +23,9 @@
 | `SKILL.md` | Правила, строительные блоки, шаблоны ответов, раздел палитр и правило первого запуска |
 | `demo.html` | Интерактивный гайд: параллакс, split-сравнение, счётчики, 7 палитр, библиотека компонентов |
 | `index.html` | Редирект на `demo.html` для GitHub Pages |
+| `output-template.html` | Шаблон HTML-вывода: рендерер Markdown + 7 палитр |
+| `render.ps1` | Markdown → стилизованный HTML |
+| `config.txt` | Настройки скилла (`auto_html=on\|off`) |
 | `palette.txt` | Ваша палитра (создаётся при первом выборе, в репозиторий не попадает) |
 | `LICENSE` | The Unlicense — public domain, без ограничений |
 | `README.md` | Этот файл |
@@ -117,6 +120,24 @@ SKILL.md
 opencode
 ```
 
+## HTML-вывод
+
+По умолчанию скилл рендерит каждый ответ в стилизованный HTML и **открывает его** — в дополнение к обычному тексту в чате.
+
+| Что | Путь |
+| --- | --- |
+| Исходник ответа | `.chat-magic-output/answer.md` |
+| Готовый HTML | `.chat-magic-output/answer.html` |
+
+```powershell
+powershell -File render.ps1 -Markdown .chat-magic-output/answer.md `
+  -Out .chat-magic-output/answer.html -Theme opencode
+```
+
+- Палитра берётся из `palette.txt`.
+- Папка `.chat-magic-output/` одноразовая — в git не попадает.
+- Отключить: `config.txt` → `auto_html=off`.
+
 ## Первый запуск
 
 При первом использовании скилла, если `palette.txt` пуст, ассистент **предложит выбрать палитру** (с подсказкой под текущую среду) и продолжит работу, не дожидаясь ответа. Если ни одна не подходит — опишите свои цвета, и будет собрана кастомная. Выбор сохранится, повторно спрашивать не будут.
@@ -135,4 +156,4 @@ opencode
 
 ## English
 
-**chat-magic-output** is an OpenCode skill that makes every chat reply beautiful, scannable and easy to read: answer-first layout, short paragraphs, headings, bullets, tables and fenced code instead of walls of text — plus **7 color palettes** (dark, light, OpenCode, DeepSeek, Harness, Codex, Cursor), an interactive offline demo (`demo.html`) with parallax, a draggable before/after split and animated infographics, and a component library with one-click **Copy HTML / Copy CSS**. The palette choice is stored in `palette.txt`; on first run the skill offers to pick one if none is set. Install with `npx skills add Kingoff8/chat-magic-output -g` or clone into `~/.config/opencode/skills/`. Live demo: https://kingoff8.github.io/chat-magic-output/ . Public domain under The Unlicense — do anything you want, no restrictions.
+**chat-magic-output** is an OpenCode skill that makes every chat reply beautiful, scannable and easy to read: answer-first layout, short paragraphs, headings, bullets, tables and fenced code instead of walls of text — plus **7 color palettes** (dark, light, OpenCode, DeepSeek, Harness, Codex, Cursor), an interactive offline demo (`demo.html`) with parallax, a draggable before/after split and animated infographics, and a component library with one-click **Copy HTML / Copy CSS**. The palette choice is stored in `palette.txt`; on first run the skill offers to pick one if none is set. Every answer can also be rendered to a styled HTML file and opened automatically (`render.ps1` + `output-template.html`; disable via `config.txt` → `auto_html=off`). Install with `npx skills add Kingoff8/chat-magic-output -g` or clone into `~/.config/opencode/skills/`. Live demo: https://kingoff8.github.io/chat-magic-output/ . Public domain under The Unlicense — do anything you want, no restrictions.

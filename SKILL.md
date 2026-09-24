@@ -100,6 +100,32 @@ a component library with **Copy HTML / Copy CSS** buttons. It ships **7 color
 palettes** with a 🎨 switcher and a "Палитры" section. Open it in a browser to
 preview the style and copy ready-made infographic blocks for reuse.
 
+## Rendered HTML output (auto-open)
+
+By default the skill also renders every user-facing answer to a styled HTML page
+and opens it, so the user sees the formatted result live — not just raw Markdown.
+
+Pipeline, per answer (right before/while sending the chat text):
+
+1. Write the answer Markdown to `.chat-magic-output/answer.md` in the workspace.
+2. Render it:
+
+   ```powershell
+   powershell -File "<skill>/render.ps1" -Markdown .chat-magic-output/answer.md `
+     -Out .chat-magic-output/answer.html -Theme <palette-id>
+   ```
+
+3. Open the result with the browser preview tool (absolute path to `answer.html`).
+4. Then send the normal chat answer.
+
+Contract:
+
+- Palette = the id from `palette.txt` (fallback `opencode`).
+- `.chat-magic-output/` is disposable; `render.ps1` drops a `.gitignore` (`*`) there.
+- Disable when the user asks, or via `config.txt` → `auto_html=off`.
+- If the preview tool is unavailable, skip opening and just mention the file path.
+- Never paste the whole HTML into chat — link the file instead.
+
 ## Color palettes
 
 Presets are applied with `data-theme="<id>"` on `<html>`. The demo also accepts

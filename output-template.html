@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru" data-theme="opencode">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<script>
+  try {
+    var f = new URLSearchParams(location.search).get("theme");
+    if (f) document.documentElement.dataset.theme = f;
+  } catch (e) {}
+</script>
+<style>
+  :root, [data-theme="dark"] {
+    --bg:#0b0e14; --panel:rgba(255,255,255,.045); --border:rgba(255,255,255,.09);
+    --text:#e6edf3; --muted:#96a3b2; --accent:#7aa2f7; --accent-2:#bb9af7;
+    --ok:#9ece6a; --warn:#e0af68; --err:#f7768e; --info:#7dcfff;
+    --code-bg:#0d1117; --code-text:#c9d4e3; --on-accent:#0b0e14;
+    --blob-1:#7aa2f7; --blob-2:#bb9af7; --vignette:rgba(11,14,20,.9); --nav-bg:rgba(11,14,20,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  [data-theme="light"] {
+    --bg:#f6f7fb; --panel:rgba(15,23,42,.035); --border:rgba(15,23,42,.12);
+    --text:#1b2333; --muted:#5c6675; --accent:#2f6fed; --accent-2:#8b5cf6;
+    --ok:#2f9e44; --warn:#b7791f; --err:#d6336c; --info:#1c7ed6;
+    --code-bg:#eef1f7; --code-text:#243044; --on-accent:#ffffff;
+    --blob-1:#a8c3fb; --blob-2:#cbb8fb; --vignette:rgba(246,247,251,.92); --nav-bg:rgba(246,247,251,.72);
+    --shadow:0 10px 30px rgba(15,23,42,.09);
+  }
+  [data-theme="opencode"] {
+    --bg:#0a0a0b; --panel:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
+    --text:#f2ede7; --muted:#a29a90; --accent:#f5a97f; --accent-2:#e0af68;
+    --ok:#a6da95; --warn:#eed49f; --err:#ed8796; --info:#8bd5ca;
+    --code-bg:#12100e; --code-text:#ded8cf; --on-accent:#10100f;
+    --blob-1:#f5a97f; --blob-2:#e0af68; --vignette:rgba(10,10,11,.9); --nav-bg:rgba(10,10,11,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  [data-theme="deepseek"] {
+    --bg:#080d1f; --panel:rgba(255,255,255,.045); --border:rgba(255,255,255,.1);
+    --text:#e8ecff; --muted:#8e9bc4; --accent:#4d6bfe; --accent-2:#7b93ff;
+    --ok:#4ade80; --warn:#fbbf24; --err:#fb7185; --info:#38bdf8;
+    --code-bg:#0a1130; --code-text:#cdd6ff; --on-accent:#ffffff;
+    --blob-1:#4d6bfe; --blob-2:#7b93ff; --vignette:rgba(8,13,31,.9); --nav-bg:rgba(8,13,31,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  [data-theme="harness"] {
+    --bg:#0a1017; --panel:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
+    --text:#e6f0ee; --muted:#8fa5a3; --accent:#00d4a0; --accent-2:#00b4d8;
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; --info:#38bdf8;
+    --code-bg:#0b1418; --code-text:#cfe8e3; --on-accent:#04120e;
+    --blob-1:#00d4a0; --blob-2:#00b4d8; --vignette:rgba(10,16,23,.9); --nav-bg:rgba(10,16,23,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  [data-theme="codex"] {
+    --bg:#0d0d0d; --panel:rgba(255,255,255,.05); --border:rgba(255,255,255,.11);
+    --text:#ececec; --muted:#9a9a9a; --accent:#10a37f; --accent-2:#6ee7b7;
+    --ok:#10a37f; --warn:#d29922; --err:#f85149; --info:#58a6ff;
+    --code-bg:#0a0a0a; --code-text:#d6d6d6; --on-accent:#05140f;
+    --blob-1:#10a37f; --blob-2:#6ee7b7; --vignette:rgba(13,13,13,.9); --nav-bg:rgba(13,13,13,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.42);
+  }
+  [data-theme="cursor"] {
+    --bg:#0a0a0a; --panel:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
+    --text:#f7f7f4; --muted:#8a8a86; --accent:#6b5ce7; --accent-2:#a78bfa;
+    --ok:#4ade80; --warn:#f5c451; --err:#f87171; --info:#60a5fa;
+    --code-bg:#0e0e10; --code-text:#dcdcd8; --on-accent:#ffffff;
+    --blob-1:#6b5ce7; --blob-2:#a78bfa; --vignette:rgba(10,10,10,.9); --nav-bg:rgba(10,10,10,.6);
+    --shadow:0 10px 30px rgba(0,0,0,.42);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.65;
+    transition: background .35s ease, color .35s ease;
+  }
+  .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(110px); opacity: .4; }
+  .blob-1 { width: 560px; height: 560px; left: -140px; top: -160px; background: radial-gradient(circle, var(--blob-1), transparent 65%); }
+  .blob-2 { width: 480px; height: 480px; right: -160px; bottom: -180px; background: radial-gradient(circle, var(--blob-2), transparent 65%); }
+  .bg::after { content:""; position:absolute; inset:0; background: radial-gradient(ellipse at 50% 0%, transparent 45%, var(--vignette) 100%); }
+
+  .bar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 24px;
+    background: var(--nav-bg); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    color: var(--muted); font-size: 13px;
+  }
+  .bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .bar .spacer { flex: 1; }
+  .bar a { color: var(--accent); text-decoration: none; }
+
+  article {
+    max-width: 860px; margin: 32px auto 90px; padding: 40px 44px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+    box-shadow: var(--shadow); backdrop-filter: blur(10px);
+    animation: fade .5s ease both;
+  }
+  @keyframes fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  article > :first-child { margin-top: 0; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 18px; }
+  h1::after { content:""; display:block; width: 64px; height: 3px; margin-top: 12px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  h2 { font-size: 22px; margin: 34px 0 12px; }
+  h3 { font-size: 18px; margin: 26px 0 10px; color: var(--accent); }
+  h4 { font-size: 15px; margin: 20px 0 8px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 16px; padding-left: 24px; }
+  li { margin-bottom: 5px; }
+  li::marker { color: var(--accent); }
+  strong { color: var(--text); }
+  a { color: var(--accent); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+  blockquote {
+    margin: 0 0 16px; padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-radius: 0 10px 10px 0; color: var(--muted);
+  }
+  code {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: .88em;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    padding: 2px 7px; border-radius: 6px;
+  }
+  pre {
+    margin: 0 0 16px; padding: 16px 18px; overflow-x: auto;
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px;
+  }
+  pre code { background: none; padding: 0; color: var(--code-text); font-size: 13.5px; line-height: 1.7; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  tbody tr:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+  tr:last-child td { border-bottom: none; }
+  footer { max-width: 860px; margin: 0 auto 40px; padding: 0 44px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="bg"><div class="blob blob-1"></div><div class="blob blob-2"></div></div>
+
+<div class="bar">
+  <span class="dot"></span>
+  <span>chat-magic-output</span>
+  <span class="spacer"></span>
+  <a href="https://github.com/Kingoff8/chat-magic-output">github</a>
+</div>
+
+<article id="doc">Загрузка…</article>
+<footer>Отрендерено скиллом chat-magic-output · палитра <span id="pal">__THEME__</span></footer>
+
+<script id="src" type="application/octet-stream" data-b64="__B64__"></script>
+<script>
+(function () {
+  var b64 = document.getElementById("src").getAttribute("data-b64") || "";
+  var md;
+  try {
+    var bytes = Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); });
+    md = new TextDecoder().decode(bytes);
+  } catch (e) { md = ""; }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function inline(s) {
+    return esc(s)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+  function splitRow(l) {
+    return l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (s) { return s.trim(); });
+  }
+  function render(src) {
+    var lines = src.replace(/\r\n/g, "\n").split("\n");
+    var out = "", i = 0, inCode = false, lang = "", buf = [];
+    function flush() { if (inCode) { out += '<pre><code class="lang-' + esc(lang) + '">' + esc(buf.join("\n")) + "</code></pre>"; inCode = false; buf = []; } }
+    while (i < lines.length) {
+      var line = lines[i];
+      var fence = line.match(/^```(\w*)\s*$/);
+      if (fence) { if (!inCode) { inCode = true; lang = fence[1] || ""; } else { flush(); } i++; continue; }
+      if (inCode) { buf.push(line); i++; continue; }
+      var h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) { out += "<h" + h[1].length + ">" + inline(h[2]) + "</h" + h[1].length + ">"; i++; continue; }
+      if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) { out += "<hr>"; i++; continue; }
+      if (/^>\s?/.test(line)) {
+        var q = []; while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(lines[i].replace(/^>\s?/, "")); i++; }
+        out += "<blockquote>" + q.map(inline).join("<br>") + "</blockquote>"; continue;
+      }
+      if (line.indexOf("|") > -1 && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) {
+        var head = splitRow(line); i += 2; var rows = [];
+        while (i < lines.length && lines[i].indexOf("|") > -1 && lines[i].trim() !== "") { rows.push(splitRow(lines[i])); i++; }
+        out += "<table><thead><tr>" + head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") +
+               "</tr></thead><tbody>" + rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table>";
+        continue;
+      }
+      if (/^\s*[-*]\s+/.test(line) || /^\s*\d+\.\s+/.test(line)) {
+        var ordered = /^\s*\d+\.\s+/.test(line), items = [];
+        while (i < lines.length && (/^\s*[-*]\s+/.test(lines[i]) || /^\s*\d+\.\s+/.test(lines[i]))) {
+          items.push(lines[i].replace(/^\s*(?:[-*]|\d+\.)\s+/, "")); i++;
+        }
+        out += "<" + (ordered ? "ol" : "ul") + ">" + items.map(function (t) { return "<li>" + inline(t) + "</li>"; }).join("") + "</" + (ordered ? "ol" : "ul") + ">";
+        continue;
+      }
+      if (line.trim() === "") { i++; continue; }
+      var para = [];
+      while (i < lines.length && lines[i].trim() !== "" &&
+             !/^(#{1,6}\s|```|>\s?)/.test(lines[i]) &&
+             !/^\s*(-{3,}|\*{3,})\s*$/.test(lines[i]) &&
+             lines[i].indexOf("|") === -1 &&
+             !/^\s*[-*]\s+/.test(lines[i]) && !/^\s*\d+\.\s+/.test(lines[i])) { para.push(lines[i]); i++; }
+      if (para.length) out += "<p>" + inline(para.join(" ")) + "</p>";
+      else i++;
+    }
+    flush();
+    return out;
+  }
+
+  document.getElementById("doc").innerHTML = render(md);
+  document.getElementById("pal").textContent = document.documentElement.dataset.theme;
+})();
+</script>
+</body>
+</html>

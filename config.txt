@@ -1,0 +1,3 @@
+# chat-magic-output settings — one key=value per line
+# auto_html: render every answer to .chat-magic-output/answer.html and open it
+auto_html=on
