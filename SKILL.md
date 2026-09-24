@@ -123,8 +123,10 @@ Pipeline, per answer (after the answer text is ready — right when it finishes)
 Contract:
 
 - Palette = the id from `palette.txt` (fallback `opencode`).
-- Styling is fixed by `output-template.html` (the `demo.html` look) — do not
-  restyle per answer; change the template if the look must change.
+- Styling: `demo.html` is the **single source of truth** — `render.ps1` injects
+  its `<style>` as `__CSS__`, and `prose.css` adds prose-element styles.
+  `output-template.html` holds only structure + the renderer. Do not duplicate
+  or restyle per answer; change `demo.html`/`prose.css` if the look must change.
 - `.chat-magic-output/` is disposable; `render.ps1` drops a `.gitignore` (`*`) there.
 - Disable when the user asks, or via `config.txt` → `auto_html=off`.
 - If the preview tool is unavailable, skip opening and just mention the file path.
