@@ -102,10 +102,12 @@ preview the style and copy ready-made infographic blocks for reuse.
 
 ## Rendered HTML output (auto-open)
 
-By default the skill also renders every user-facing answer to a styled HTML page
-and opens it, so the user sees the formatted result live — not just raw Markdown.
+By default the skill renders every user-facing answer to a styled HTML page —
+using the **same look as `demo.html`** (parallax blobs, glass card, live reveal)
+— and opens it **as soon as the answer finishes**, so the user sees the formatted
+result live, not just raw Markdown.
 
-Pipeline, per answer (right before/while sending the chat text):
+Pipeline, per answer (after the answer text is ready — right when it finishes):
 
 1. Write the answer Markdown to `.chat-magic-output/answer.md` in the workspace.
 2. Render it:
@@ -121,10 +123,40 @@ Pipeline, per answer (right before/while sending the chat text):
 Contract:
 
 - Palette = the id from `palette.txt` (fallback `opencode`).
+- Styling is fixed by `output-template.html` (the `demo.html` look) — do not
+  restyle per answer; change the template if the look must change.
 - `.chat-magic-output/` is disposable; `render.ps1` drops a `.gitignore` (`*`) there.
 - Disable when the user asks, or via `config.txt` → `auto_html=off`.
 - If the preview tool is unavailable, skip opening and just mention the file path.
 - Never paste the whole HTML into chat — link the file instead.
+
+### Style rule (mandatory)
+
+The rendered page must look **exactly like `demo.html`** — same palettes, same
+components, same layout. A plain/unstyled page is a bug.
+
+- `render.ps1` injects demo.html's `<style>` blocks **verbatim** into
+  `__CSS__`, then appends `prose.css`. `demo.html` is the single source of truth.
+- Never hardcode a separate stylesheet in `output-template.html`.
+- If the output does not match the demo, fix the template/prose — not the answer.
+- Verify visually: reload the preview tab and take a screenshot
+  (`browser.screenshot` with `fullPage: true`) before declaring success.
+
+The renderer must emit rich components, not bare Markdown:
+
+| Markdown | Rendered as |
+| --- | --- |
+| `# H1` | `h1` + accent underline (gradient) |
+| `## H2` | `h2` + accent bar `::before` |
+| `### H3` | accent-coloured `h3` |
+| fence with language | `.codeblock` + `.cb-head` (lang label + **copy** button) |
+| `\| table \|` | `.table-wrap` (bordered, scrollable, zebra hover) |
+| `> quote` | `.callout` with variant |
+| paragraph starting ✅/⚠️/❌/ℹ️ | `.callout` with variant, emoji as title |
+| ordered list (short items) | `.steps` numbered cards (`.step`), 2 columns |
+
+Variants mapping: ✅ `ok`, ⚠️ `warn`, ❌ `err`, ℹ️ `info` — `.callout` + `.callout-block`
+plus the variant class; title goes into `.callout-title`.
 
 ## Color palettes
 

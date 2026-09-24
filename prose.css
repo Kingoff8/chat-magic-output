@@ -1,0 +1,86 @@
+/* chat-magic-output — prose layer + rich-answer helpers.
+   Injected AFTER the demo stylesheet: adds element styles that demo.html does not
+   define (h1/h3/h4/p/ul/pre/code/a/hr/blockquote) and helpers for rich blocks
+   (tables, code blocks, callouts, steps). Uses demo CSS variables only. */
+
+.prose { font-size: 15.5px; line-height: 1.72; }
+.prose > :first-child { margin-top: 0; }
+
+/* ---------- headings ---------- */
+.prose h1 { font-size: clamp(26px, 3.4vw, 34px); line-height: 1.18; margin: 0 0 16px; }
+.prose h1::after {
+  content: ""; display: block; width: 72px; height: 3px; margin-top: 12px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.prose h2 { position: relative; font-size: clamp(20px, 2.4vw, 26px); margin: 38px 0 14px; padding-left: 16px; }
+.prose h2::before {
+  content: ""; position: absolute; left: 0; top: 0.22em; bottom: 0.22em; width: 4px;
+  border-radius: 2px; background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.prose h3 { font-size: 18px; margin: 26px 0 10px; color: var(--accent); }
+.prose h4 { font-size: 15.5px; margin: 20px 0 8px; }
+
+/* ---------- text ---------- */
+.prose p { margin: 0 0 14px; color: var(--text); }
+.prose ul, .prose ol { margin: 0 0 16px; padding-left: 22px; }
+.prose li { margin: 0 0 6px; }
+.prose li::marker { color: var(--accent); }
+.prose strong { color: var(--text); font-weight: 700; }
+.prose em { color: var(--muted); }
+.prose del { color: var(--muted); }
+.prose a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.prose a:hover { text-decoration-color: var(--accent); }
+.prose hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+.prose code {
+  font-family: var(--mono); font-size: 0.87em; padding: 2px 7px; border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text);
+}
+
+/* ---------- tables ---------- */
+.table-wrap {
+  margin: 0 0 20px; overflow-x: auto; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--panel);
+}
+.table-wrap table { margin: 0; }
+.table-wrap thead th { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.table-wrap tbody tr:last-child td { border-bottom: none; }
+
+/* ---------- code blocks ---------- */
+.codeblock { margin: 0 0 20px; }
+.codeblock .cb-head { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.codeblock .cb-lang { font-size: 11.5px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+.codeblock .cb-copy {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--panel);
+  color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.codeblock .cb-copy:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.codeblock pre { margin: 0; padding: 16px 18px; overflow-x: auto; background: transparent; border: 0; }
+.codeblock pre code {
+  display: block; font-family: var(--mono); font-size: 13.5px; line-height: 1.7;
+  color: var(--code-text); background: none; padding: 0; white-space: pre;
+}
+
+/* ---------- callouts ---------- */
+.callout.callout-block { display: block; align-items: stretch; padding: 20px 24px; margin: 0 0 20px; }
+.callout .callout-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.callout p:last-child { margin-bottom: 0; }
+.callout.ok   { border-color: color-mix(in srgb, var(--ok) 45%, transparent);   background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 12%, transparent), transparent); }
+.callout.ok   .callout-title { color: var(--ok); }
+.callout.warn { border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--warn) 12%, transparent), transparent); }
+.callout.warn .callout-title { color: var(--warn); }
+.callout.err  { border-color: color-mix(in srgb, var(--err) 45%, transparent);  background: linear-gradient(135deg, color-mix(in srgb, var(--err) 12%, transparent), transparent); }
+.callout.err  .callout-title { color: var(--err); }
+.callout.info { border-color: color-mix(in srgb, var(--info) 45%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--info) 12%, transparent), transparent); }
+.callout.info .callout-title { color: var(--info); }
+
+/* ---------- steps (ordered lists) ---------- */
+.steps.steps-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.steps.steps-1 { grid-template-columns: 1fr; }
+.steps .step h4 { margin: 0 0 6px; font-size: 15px; }
+.steps .step p { margin: 0; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .steps.steps-2 { grid-template-columns: 1fr; }
+}
