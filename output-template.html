@@ -24,11 +24,26 @@
   @keyframes pulse { 0%, 100% { transform: scale(.8); opacity: .6; } 50% { transform: scale(1.25); opacity: 1; } }
   @keyframes blink { 50% { opacity: 0; } }
 
+  /* индикатор загрузки в начале вывода */
+  .loader { display: flex; align-items: center; gap: 12px; padding: 4px 0 24px; color: var(--muted); font-size: 14px; }
+  .loader .ring {
+    width: 18px; height: 18px; border-radius: 50%; flex: none;
+    border: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
+  }
+  .loader .dots { display: inline-flex; gap: 4px; }
+  .loader .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: bounce 1.2s ease-in-out infinite; }
+  .loader .dots i:nth-child(2) { animation-delay: .15s; }
+  .loader .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(.6); opacity: .45; } 40% { transform: scale(1); opacity: 1; } }
+
   /* «очень медленное» растворение старого вывода при начале работы */
   #doc > *.__slow {
-    transition-duration: 9s !important;
+    transition-duration: 20s !important;
     transition-timing-function: cubic-bezier(.45, .05, .55, .95) !important;
-    filter: blur(7px);
+    filter: blur(10px);
   }
 
   /* курсор набора в конце последнего блока */
@@ -295,8 +310,30 @@
     });
   }
   /* очень медленное растворение старого вывода */
+  function showLoader(text) {
+    var el = document.createElement("div");
+    el.className = "loader";
+    el.innerHTML = '<span class="ring"></span><span class="loader-text">' +
+      (text || "Формирую ответ…") + '</span><span class="dots"><i></i><i></i><i></i></span>';
+    return el;
+  }
+  function ensureLoader(text) {
+    var el = doc.querySelector(".loader");
+    if (el) return el;
+    el = showLoader(text);
+    doc.insertBefore(el, doc.firstChild);
+    el.classList.add("__in");
+    requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add("__show"); }); });
+    return el;
+  }
+  function hideLoader() {
+    var el = doc.querySelector(".loader");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
   function dissolve() {
-    var ob = Array.prototype.slice.call(doc.children);
+    var ob = Array.prototype.slice.call(doc.children).filter(function (el) {
+      return !el.classList.contains("loader");
+    });
     ob.forEach(function (el) { el.classList.remove("__out"); });
     void doc.offsetWidth;              /* форсируем reflow, иначе переход не стартует */
     requestAnimationFrame(function () {
@@ -306,6 +343,7 @@
           el.style.transitionDelay = Math.min(i * 0.25, 2.5) + "s";
           el.classList.add("__out");
         });
+        ensureLoader(state === "writing" ? "Формирую ответ…" : "Думаю…");
       });
     });
   }
@@ -347,7 +385,7 @@
         if (s !== state) {
           state = s;
           if (s === "thinking") { afterThinking = true; dissolve(); setPhase("думает…"); }
-          else if (s === "writing") { stopTyping(); setPhase("печатает"); }
+          else if (s === "writing") { stopTyping(); setPhase("печатает"); ensureLoader("Формирую ответ…"); }
           else if (s === "done") { stopTyping(); setPhase(""); }
         }
         return getText("answer.md");
@@ -361,6 +399,7 @@
         if (state === "thinking") return;
         if (afterThinking) { afterThinking = false; swapTo(html); }
         else if (!incremental(html)) swapTo(html);
+        hideLoader();
         if (state === "writing") markTyping();
         stamp();
       });
@@ -376,7 +415,7 @@
     e.preventDefault();
     var saved = currentHtml;
     dissolve();
-    setTimeout(function () { swapTo(saved); }, 9500);
+    setTimeout(function () { swapTo(saved); }, 21500);
   });
 
   document.getElementById("refresh").addEventListener("click", function (e) { e.preventDefault(); location.reload(); });
