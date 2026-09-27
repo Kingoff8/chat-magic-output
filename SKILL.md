@@ -137,10 +137,13 @@ Pipeline, per answer (drive the live page through its phases):
 
 Animation contract:
 
-- `thinking`: dissolve 3.4 s per block, stagger up to 1.2 s, top→down.
+- `thinking`: dissolve 9 s per block with blur 7 px, stagger up to 2.5 s,
+  top→down. The transition is forced with a double `requestAnimationFrame` so
+  it always starts.
 - `writing`: the changed block is updated in place (typing), new blocks fade in
   over 0.45 s, caret `▋` on the last block.
 - `done`: caret removed, content static.
+- The header has a **повторить** link that replays the 9 s dissolve on demand.
 - Previous HTML is kept in `localStorage`, so even a reload animates.
 - `prefers-reduced-motion` disables the animation.
 

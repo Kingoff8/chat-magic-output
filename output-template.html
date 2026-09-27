@@ -25,7 +25,11 @@
   @keyframes blink { 50% { opacity: 0; } }
 
   /* «очень медленное» растворение старого вывода при начале работы */
-  #doc > *.__slow { transition-duration: 3.4s !important; transition-timing-function: cubic-bezier(.4,0,.2,1) !important; }
+  #doc > *.__slow {
+    transition-duration: 9s !important;
+    transition-timing-function: cubic-bezier(.45, .05, .55, .95) !important;
+    filter: blur(7px);
+  }
 
   /* курсор набора в конце последнего блока */
   #doc > .typing::after {
@@ -62,6 +66,7 @@
   <span class="phase" id="phase"></span>
   <div class="spacer"></div>
   <span id="stamp"></span>
+  <a href="#" id="replay">повторить</a>
   <a href="#" id="refresh">обновить</a>
   <a href="https://github.com/Kingoff8/chat-magic-output">github</a>
 </nav>
@@ -251,15 +256,21 @@
   var currentHtml = render(md);
   var previousHtml = recall();
 
-  if (previousHtml && previousHtml !== currentHtml) {
-    doc.innerHTML = previousHtml;          // show previous text first
-    swapTo(currentHtml);                    // …then animate it away and in the new one
-  } else {
-    show(currentHtml, true);
+  function boot(st) {
+    if (st === "thinking") {
+      show(currentHtml, false);   /* уже думаем — сразу растворяем */
+      setPhase("думает…");
+      dissolve();
+    } else if (previousHtml && previousHtml !== currentHtml) {
+      doc.innerHTML = previousHtml;
+      swapTo(currentHtml);
+    } else {
+      show(currentHtml, true);
+    }
+    remember(currentHtml);
+    stamp();
+    document.getElementById("pal").textContent = document.documentElement.dataset.theme;
   }
-  remember(currentHtml);
-  stamp();
-  document.getElementById("pal").textContent = document.documentElement.dataset.theme;
 
   /* ---------------- живой режим: состояние + потоковая выдача ---------------- */
   var canPoll = location.protocol !== "file:";
@@ -285,10 +296,17 @@
   }
   /* очень медленное растворение старого вывода */
   function dissolve() {
-    Array.prototype.slice.call(doc.children).forEach(function (el, i) {
-      el.classList.add("__slow");
-      el.style.transitionDelay = Math.min(i * 0.14, 1.2) + "s";
-      el.classList.add("__out");
+    var ob = Array.prototype.slice.call(doc.children);
+    ob.forEach(function (el) { el.classList.remove("__out"); });
+    void doc.offsetWidth;              /* форсируем reflow, иначе переход не стартует */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        ob.forEach(function (el, i) {
+          el.classList.add("__slow");
+          el.style.transitionDelay = Math.min(i * 0.25, 2.5) + "s";
+          el.classList.add("__out");
+        });
+      });
     });
   }
   /* достраивание по мере вывода: текущий блок меняется на месте, новые проявляются */
@@ -347,9 +365,19 @@
         stamp();
       });
     }, 600);
+    getText("state.txt").then(function (s) { state = (s || "").trim(); boot(state); });
   } else {
+    boot("");
     liveText.textContent = "offline · обновите страницу";
   }
+
+  /* повтор анимации растворения — по кнопке, в любой момент */
+  document.getElementById("replay").addEventListener("click", function (e) {
+    e.preventDefault();
+    var saved = currentHtml;
+    dissolve();
+    setTimeout(function () { swapTo(saved); }, 9500);
+  });
 
   document.getElementById("refresh").addEventListener("click", function (e) { e.preventDefault(); location.reload(); });
 
