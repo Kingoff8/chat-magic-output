@@ -13,13 +13,26 @@
 <!-- __CSS__ = demo.html <style> (single source of truth for the look) + prose.css -->
 <style>__CSS__</style>
 <style>
-  /* template-only structural tweaks — no palette / element duplication */
+  /* template-only structural + swap-animation tweaks */
   .live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); font-weight: 600; font-size: 13px; }
   .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.8s ease-in-out infinite; }
+  .live.off { color: var(--muted); }
+  .live.off .dot { background: var(--muted); animation: none; }
   @keyframes pulse { 0%, 100% { transform: scale(.8); opacity: .6; } 50% { transform: scale(1.25); opacity: 1; } }
+
   main > .prose.card { padding: 40px 44px; }
   .prose code { white-space: normal; }
+
+  /* ---- animated content swap: old fades out top→down, new fades in ---- */
+  #doc > * { transition: opacity .38s ease, transform .38s ease, filter .38s ease; }
+  #doc > *.__out { opacity: 0; transform: translateY(-12px); filter: blur(2px); }
+  #doc > *.__in  { opacity: 0; transform: translateY(16px); }
+  #doc > *.__in.__show { opacity: 1; transform: none; filter: none; }
+
   @media (max-width: 640px) { main > .prose.card { padding: 26px 20px; } }
+  @media (prefers-reduced-motion: reduce) {
+    #doc > * { transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -32,8 +45,10 @@
 
 <nav>
   <div class="logo">chat-magic-<span>output</span></div>
-  <span class="live"><span class="dot"></span>live</span>
+  <span class="live off" id="live"><span class="dot"></span><span id="liveText">offline</span></span>
   <div class="spacer"></div>
+  <span id="stamp"></span>
+  <a href="#" id="refresh">обновить</a>
   <a href="https://github.com/Kingoff8/chat-magic-output">github</a>
 </nav>
 
@@ -50,13 +65,18 @@
 <script>
 (function () {
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var doc = document.getElementById("doc");
+  var LS = "cmo:last-html";
+  var STEP_OUT = 0.035;   // stagger per block, seconds
+  var STEP_IN  = 0.05;
+  var DURATION = 0.38;
 
-  /* ---------- markdown → html ---------- */
+  /* ---------------- markdown → html ---------------- */
   var b64 = document.getElementById("src").getAttribute("data-b64") || "";
-  var md;
+  var md = "";
   try {
     md = new TextDecoder().decode(Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }));
-  } catch (e) { md = ""; }
+  } catch (e) {}
 
   function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function inline(s) {
@@ -72,12 +92,28 @@
   }
   function calloutVariant(t) {
     if (/✅/.test(t)) return "ok";
-    if (/⚠️|⚠/.test(t)) return "warn";
+    if (/⚠/.test(t)) return "warn";
     if (/❌/.test(t)) return "err";
     return "info";
   }
+  /* абзац, начинающийся со статуса → .callout, эмодзи уходит в заголовок */
+  function statusCallout(text) {
+    var m = text.match(/^([✅⚠️❌ℹ️])\s*([\s\S]*)$/);
+    if (!m) return null;
+    var emoji = m[1], rest = m[2], idx = -1;
+    [" — ", ": ", ". "].forEach(function (sep) {
+      var p = rest.indexOf(sep);
+      if (p > 4 && (idx === -1 || p < idx)) idx = p;
+    });
+    var title = idx === -1 ? rest : rest.slice(0, idx);
+    var body = idx === -1 ? "" : rest.slice(idx).replace(/^\s*(—|:|\.)\s*/, "");
+    if (!title) return null;
+    return '<div class="callout callout-block ' + calloutVariant(emoji) + '">' +
+           '<p class="callout-title">' + inline(emoji + " " + title) + "</p>" +
+           (body ? "<p>" + inline(body) + "</p>" : "") + "</div>";
+  }
   function render(src) {
-    var lines = src.replace(/\r\n/g, "\n").split("\n");
+    var lines = String(src || "").replace(/\r\n/g, "\n").split("\n");
     var out = "", i = 0, inCode = false, lang = "", buf = [];
 
     function flushCode() {
@@ -103,9 +139,10 @@
       if (/^>\s?/.test(line)) {
         var q = [];
         while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(lines[i].replace(/^>\s?/, "")); i++; }
-        var v = calloutVariant(q.join(" "));
-        out += '<div class="callout callout-block ' + v + '">' +
-               q.map(function (t) { return "<p>" + inline(t) + "</p>"; }).join("") + "</div>";
+        out += '<div class="callout callout-block ' + calloutVariant(q.join(" ")) + '">' +
+               q.map(function (t, k) {
+                 return k === 0 ? '<p class="callout-title">' + inline(t) + "</p>" : "<p>" + inline(t) + "</p>";
+               }).join("") + "</div>";
         continue;
       }
 
@@ -113,8 +150,7 @@
         var head = splitRow(line); i += 2; var rows = [];
         while (i < lines.length && lines[i].indexOf("|") > -1 && lines[i].trim() !== "") { rows.push(splitRow(lines[i])); i++; }
         out += '<div class="table-wrap"><table><thead><tr>' +
-               head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") +
-               "</tr></thead><tbody>" +
+               head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") + "</tr></thead><tbody>" +
                rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>"; }).join("") +
                "</tbody></table></div>";
         continue;
@@ -126,7 +162,14 @@
           items.push(lines[i].replace(/^\s*(?:[-*]|\d+\.)\s+/, "")); i++;
         }
         var tag = ordered ? "ol" : "ul";
-        out += "<" + tag + ">" + items.map(function (t) { return "<li>" + inline(t) + "</li>"; }).join("") + "</" + tag + ">";
+        if (ordered && items.length <= 8 && items.every(function (t) { return t.length <= 120; })) {
+          /* короткий нумерованный список → карточки-шаги (2 колонки) */
+          out += '<div class="steps steps-2">' + items.map(function (t) {
+            return '<div class="step"><h4>' + inline(t) + "</h4></div>";
+          }).join("") + "</div>";
+        } else {
+          out += "<" + tag + ">" + items.map(function (t) { return "<li>" + inline(t) + "</li>"; }).join("") + "</" + tag + ">";
+        }
         continue;
       }
 
@@ -138,18 +181,103 @@
              !/^\s*(-{3,}|\*{3,})\s*$/.test(lines[i]) &&
              lines[i].indexOf("|") === -1 &&
              !/^\s*[-*]\s+/.test(lines[i]) && !/^\s*\d+\.\s+/.test(lines[i])) { para.push(lines[i]); i++; }
-      if (para.length) out += "<p>" + inline(para.join(" ")) + "</p>";
-      else i++;
+      if (para.length) {
+        var text = para.join(" ");
+        out += statusCallout(text) || ("<p>" + inline(text) + "</p>");
+      } else i++;
     }
     flushCode();
     return out;
   }
 
-  var doc = document.getElementById("doc");
-  doc.innerHTML = render(md);
+  /* ---------------- animated swap ---------------- */
+  function show(html, animateIn) {
+    doc.innerHTML = html;
+    if (!animateIn || reduceMotion) return;
+    var blocks = Array.prototype.slice.call(doc.children);
+    blocks.forEach(function (el, i) {
+      el.classList.add("__in");
+      el.style.transitionDelay = Math.min(i * STEP_IN, 0.6) + "s";
+    });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        blocks.forEach(function (el) { el.classList.add("__show"); });
+      });
+    });
+    /* страховка: контент обязан быть видимым, даже если rAF/transition не сработали */
+    setTimeout(function () {
+      blocks.forEach(function (el) { el.classList.add("__show"); });
+    }, 1200);
+  }
+
+  function swapTo(html) {
+    if (reduceMotion) { show(html, false); return; }
+    var old = Array.prototype.slice.call(doc.children);
+    old.forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(i * STEP_OUT, 0.5) + "s";
+      el.classList.add("__out");
+    });
+    var wait = Math.max(DURATION * 1000, Math.min(old.length * STEP_OUT, 0.5) * 1000 + DURATION * 1000);
+    setTimeout(function () { show(html, true); }, wait);
+  }
+
+  function remember(html) {
+    try { localStorage.setItem(LS, html); } catch (e) {}
+  }
+  function recall() {
+    try { return localStorage.getItem(LS); } catch (e) { return null; }
+  }
+
+  function stamp() {
+    var d = new Date();
+    document.getElementById("stamp").textContent =
+      "обновлено " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
+  }
+
+  var currentHtml = render(md);
+  var previousHtml = recall();
+
+  if (previousHtml && previousHtml !== currentHtml) {
+    doc.innerHTML = previousHtml;          // show previous text first
+    swapTo(currentHtml);                    // …then animate it away and in the new one
+  } else {
+    show(currentHtml, true);
+  }
+  remember(currentHtml);
+  stamp();
   document.getElementById("pal").textContent = document.documentElement.dataset.theme;
 
-  /* ---------- copy buttons ---------- */
+  /* ---------------- live polling (needs http://) ---------------- */
+  var canPoll = location.protocol !== "file:";
+  var lastMd = md;
+  var liveEl = document.getElementById("live");
+  var liveText = document.getElementById("liveText");
+
+  if (canPoll) {
+    liveEl.classList.remove("off");
+    liveText.textContent = "live";
+    setInterval(function () {
+      fetch("answer.md?t=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (t) {
+          if (!t || t === lastMd) return;
+          lastMd = t;
+          var html = render(t);
+          if (html === currentHtml) return;
+          currentHtml = html;
+          remember(html);
+          swapTo(html);   // old fades out top→down, new fades in
+          stamp();
+        })
+        .catch(function () {});
+    }, 1200);
+  } else {
+    liveText.textContent = "offline · обновите страницу";
+  }
+
+  document.getElementById("refresh").addEventListener("click", function (e) { e.preventDefault(); location.reload(); });
+
+  /* ---------------- copy buttons ---------------- */
   document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest(".cb-copy") : null;
     if (!b) return;
@@ -160,27 +288,13 @@
     }, function () { b.textContent = "Не удалось"; });
   });
 
-  /* ---------- live reveal (demo .reveal class comes from the demo stylesheet) ---------- */
-  var kids = Array.prototype.slice.call(doc.children);
-  kids.forEach(function (el, idx) { el.classList.add("reveal"); el.style.transitionDelay = Math.min(idx * 0.04, 0.4) + "s"; });
-  if (reduceMotion) {
-    kids.forEach(function (el) { el.classList.add("in"); });
-  } else {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
-    }, { threshold: 0.12 });
-    kids.forEach(function (el) { io.observe(el); });
-    /* safety net: content must be visible even if reveal never fires */
-    setTimeout(function () { kids.forEach(function (el) { el.classList.add("in"); }); }, 2000);
-  }
-
-  /* ---------- background parallax ---------- */
+  /* ---------------- background parallax ---------------- */
   if (!reduceMotion) {
     var blobs = Array.prototype.slice.call(document.querySelectorAll(".blob"));
     var tx = 0, ty = 0, cx = 0, cy = 0;
-    window.addEventListener("mousemove", function (e) {
-      tx = e.clientX - window.innerWidth / 2;
-      ty = e.clientY - window.innerHeight / 2;
+    window.addEventListener("mousemove", function (ev) {
+      tx = ev.clientX - window.innerWidth / 2;
+      ty = ev.clientY - window.innerHeight / 2;
     });
     (function tick() {
       cx += (tx - cx) * 0.06; cy += (ty - cy) * 0.06;

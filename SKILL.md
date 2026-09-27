@@ -117,8 +117,25 @@ Pipeline, per answer (after the answer text is ready — right when it finishes)
      -Out .chat-magic-output/answer.html -Theme <palette-id>
    ```
 
-3. Open the result with the browser preview tool (absolute path to `answer.html`).
-4. Then send the normal chat answer.
+3. Serve the folder once per session and keep the tab open:
+
+   ```powershell
+   node "<skill>/serve.mjs" .chat-magic-output 8787
+   ```
+
+   Then open `http://127.0.0.1:8787/`. The page polls `answer.md` every 1.2 s
+   and **animates each update in place**: old blocks fade out top→down, new
+   blocks fade in behind them. No reload, no new file.
+4. If the server cannot run, fall back to the preview tool with `answer.html`
+   (`file://` = offline mode: the same animation plays on reload/F5).
+5. Then send the normal chat answer.
+
+Animation contract:
+
+- Out: 0.38 s per block, stagger 0.035 s, top→down.
+- In: stagger 0.05 s, then fully visible.
+- The previous HTML is kept in `localStorage`, so even a reload animates.
+- `prefers-reduced-motion` disables the animation.
 
 Contract:
 
