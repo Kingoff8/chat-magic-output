@@ -18,7 +18,20 @@
   .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.8s ease-in-out infinite; }
   .live.off { color: var(--muted); }
   .live.off .dot { background: var(--muted); animation: none; }
+  .live.busy { color: var(--accent); }
+  .live.busy .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  .phase { color: var(--accent); font-weight: 600; font-size: 13px; }
   @keyframes pulse { 0%, 100% { transform: scale(.8); opacity: .6; } 50% { transform: scale(1.25); opacity: 1; } }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* «очень медленное» растворение старого вывода при начале работы */
+  #doc > *.__slow { transition-duration: 3.4s !important; transition-timing-function: cubic-bezier(.4,0,.2,1) !important; }
+
+  /* курсор набора в конце последнего блока */
+  #doc > .typing::after {
+    content: "▋"; color: var(--accent); margin-left: 3px;
+    animation: blink 1s steps(2, start) infinite;
+  }
 
   main > .prose.card { padding: 40px 44px; }
   .prose code { white-space: normal; }
@@ -46,6 +59,7 @@
 <nav>
   <div class="logo">chat-magic-<span>output</span></div>
   <span class="live off" id="live"><span class="dot"></span><span id="liveText">offline</span></span>
+  <span class="phase" id="phase"></span>
   <div class="spacer"></div>
   <span id="stamp"></span>
   <a href="#" id="refresh">обновить</a>
@@ -247,30 +261,92 @@
   stamp();
   document.getElementById("pal").textContent = document.documentElement.dataset.theme;
 
-  /* ---------------- live polling (needs http://) ---------------- */
+  /* ---------------- живой режим: состояние + потоковая выдача ---------------- */
   var canPoll = location.protocol !== "file:";
   var lastMd = md;
   var liveEl = document.getElementById("live");
   var liveText = document.getElementById("liveText");
+  var phaseEl = document.getElementById("phase");
+  var state = "";
+  var afterThinking = false;
+
+  function setPhase(name) {
+    if (phaseEl) phaseEl.textContent = name || "";
+    if (liveEl) liveEl.classList.toggle("busy", name === "думает…");
+  }
+  function markTyping() {
+    stopTyping();
+    if (doc.lastElementChild) doc.lastElementChild.classList.add("typing");
+  }
+  function stopTyping() {
+    Array.prototype.slice.call(doc.querySelectorAll(".typing")).forEach(function (el) {
+      el.classList.remove("typing");
+    });
+  }
+  /* очень медленное растворение старого вывода */
+  function dissolve() {
+    Array.prototype.slice.call(doc.children).forEach(function (el, i) {
+      el.classList.add("__slow");
+      el.style.transitionDelay = Math.min(i * 0.14, 1.2) + "s";
+      el.classList.add("__out");
+    });
+  }
+  /* достраивание по мере вывода: текущий блок меняется на месте, новые проявляются */
+  function incremental(html) {
+    var tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    var nb = Array.prototype.slice.call(tmp.children);
+    var ob = Array.prototype.slice.call(doc.children);
+    var n = Math.min(ob.length, nb.length), i = 0;
+    while (i < n && ob[i].tagName === nb[i].tagName && ob[i].innerHTML === nb[i].innerHTML) i++;
+    if (i < n) {
+      if (ob[i].tagName === nb[i].tagName && /^(P|H1|H2|H3|H4|LI|UL|OL|HR|BLOCKQUOTE)$/.test(ob[i].tagName)) {
+        ob[i].innerHTML = nb[i].innerHTML;
+        i++;
+      } else return false;
+    }
+    while (doc.children.length > i) doc.removeChild(doc.lastChild);
+    nb.slice(i).forEach(function (el) {
+      el.classList.add("__in");
+      el.style.transitionDuration = "0.45s";
+      doc.appendChild(el);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add("__show"); }); });
+    });
+    return true;
+  }
+  function getText(url) {
+    return fetch(url + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .catch(function () { return null; });
+  }
 
   if (canPoll) {
     liveEl.classList.remove("off");
     liveText.textContent = "live";
     setInterval(function () {
-      fetch("answer.md?t=" + Date.now(), { cache: "no-store" })
-        .then(function (r) { return r.ok ? r.text() : null; })
-        .then(function (t) {
-          if (!t || t === lastMd) return;
-          lastMd = t;
-          var html = render(t);
-          if (html === currentHtml) return;
-          currentHtml = html;
-          remember(html);
-          swapTo(html);   // old fades out top→down, new fades in
-          stamp();
-        })
-        .catch(function () {});
-    }, 1200);
+      getText("state.txt").then(function (s) {
+        s = (s || "").trim();
+        if (s !== state) {
+          state = s;
+          if (s === "thinking") { afterThinking = true; dissolve(); setPhase("думает…"); }
+          else if (s === "writing") { stopTyping(); setPhase("печатает"); }
+          else if (s === "done") { stopTyping(); setPhase(""); }
+        }
+        return getText("answer.md");
+      }).then(function (t) {
+        if (!t || t === lastMd) return;
+        lastMd = t;
+        var html = render(t);
+        if (html === currentHtml) return;
+        currentHtml = html;
+        remember(html);
+        if (state === "thinking") return;
+        if (afterThinking) { afterThinking = false; swapTo(html); }
+        else if (!incremental(html)) swapTo(html);
+        if (state === "writing") markTyping();
+        stamp();
+      });
+    }, 600);
   } else {
     liveText.textContent = "offline · обновите страницу";
   }

@@ -107,34 +107,41 @@ using the **same look as `demo.html`** (parallax blobs, glass card, live reveal)
 — and opens it **as soon as the answer finishes**, so the user sees the formatted
 result live, not just raw Markdown.
 
-Pipeline, per answer (after the answer text is ready — right when it finishes):
+Pipeline, per answer (drive the live page through its phases):
 
-1. Write the answer Markdown to `.chat-magic-output/answer.md` in the workspace.
-2. Render it:
+1. Write `thinking` to `.chat-magic-output/state.txt` **first** — the page starts
+   the very slow dissolve of the previous output (3.4 s, staggered) and the
+   header switches to «думает…».
+2. Write `writing` to the same file and write the answer Markdown to
+   `.chat-magic-output/answer.md` **progressively** (answer head first, then the
+   rest). The page appends blocks as they appear and keeps a blinking caret.
+3. When the answer is complete, write `done` to `state.txt` (removes the caret).
+4. Render the offline snapshot:
 
    ```powershell
    powershell -File "<skill>/render.ps1" -Markdown .chat-magic-output/answer.md `
      -Out .chat-magic-output/answer.html -Theme <palette-id>
    ```
 
-3. Serve the folder once per session and keep the tab open:
+5. Serve the folder once per session and keep the tab open:
 
    ```powershell
    node "<skill>/serve.mjs" .chat-magic-output 8787
    ```
 
-   Then open `http://127.0.0.1:8787/`. The page polls `answer.md` every 1.2 s
-   and **animates each update in place**: old blocks fade out top→down, new
-   blocks fade in behind them. No reload, no new file.
-4. If the server cannot run, fall back to the preview tool with `answer.html`
-   (`file://` = offline mode: the same animation plays on reload/F5).
-5. Then send the normal chat answer.
+   Then open `http://127.0.0.1:8787/`. The page polls every 0.6 s — no reload,
+   no new file.
+6. If the server cannot run, fall back to the preview tool with `answer.html`
+   (`file://` = offline mode: the animation plays on reload/F5).
+7. Then send the normal chat answer.
 
 Animation contract:
 
-- Out: 0.38 s per block, stagger 0.035 s, top→down.
-- In: stagger 0.05 s, then fully visible.
-- The previous HTML is kept in `localStorage`, so even a reload animates.
+- `thinking`: dissolve 3.4 s per block, stagger up to 1.2 s, top→down.
+- `writing`: the changed block is updated in place (typing), new blocks fade in
+  over 0.45 s, caret `▋` on the last block.
+- `done`: caret removed, content static.
+- Previous HTML is kept in `localStorage`, so even a reload animates.
 - `prefers-reduced-motion` disables the animation.
 
 Contract:
